@@ -25,9 +25,40 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <p><strong>Participants:</strong></p>
+          <div class="participants-list">
+            ${details.participants.length > 0 ? details.participants.map(p => `
+              <div class="participant-item">
+                <span>${p}</span>
+                <button class="delete-btn" data-email="${p}" data-activity="${name}">×</button>
+              </div>
+            `).join('') : '<div class="participant-item">No participants yet</div>'}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Add event listeners for delete buttons
+        activityCard.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const email = btn.dataset.email;
+            const activity = btn.dataset.activity;
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+                { method: 'DELETE' }
+              );
+              if (response.ok) {
+                fetchActivities(); // Refresh the activities
+              } else {
+                const result = await response.json();
+                alert(result.detail || 'Error unregistering');
+              }
+            } catch (error) {
+              alert('Failed to unregister. Please try again.');
+            }
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -62,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh the activities to show updated participant list
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
